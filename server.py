@@ -149,6 +149,62 @@ except Exception as e:
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html")
+# Latest energy reading
+@app.route("/latest", methods=["GET"])
+def latest_energy():
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+
+                cur.execute("""
+                    SELECT
+                        id,
+                        device,
+                        voltage,
+                        current,
+                        power,
+                        energy,
+                        created_at
+                    FROM energy_data
+                    ORDER BY id DESC
+                    LIMIT 1
+                """)
+
+                row = cur.fetchone()
+
+        if not row:
+            return jsonify({
+                "status": "success",
+                "data": None
+            })
+
+        data = {
+            "id": row[0],
+            "device": row[1],
+            "voltage": row[2],
+            "current": row[3],
+            "power": row[4],
+            "energy": row[5],
+            "created_at": row[6].isoformat()
+        }
+
+        return jsonify({
+            "status": "success",
+            "data": data
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
