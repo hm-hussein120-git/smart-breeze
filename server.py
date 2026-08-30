@@ -96,6 +96,7 @@ def get_energy():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
+
                 cur.execute("""
                     SELECT
                         id,
@@ -139,17 +140,6 @@ def get_energy():
         }), 500
 
 
-# Create database table when the server starts
-try:
-    init_db()
-    print("Database initialized successfully")
-except Exception as e:
-    print("Database initialization error:", e)
-
-@app.route("/dashboard")
-def dashboard():
-    return render_template("dashboard.html")
-# Latest energy reading
 @app.route("/latest", methods=["GET"])
 def latest_energy():
 
@@ -205,6 +195,16 @@ def latest_energy():
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html")
+
+
+# Initialize database
+try:
+    init_db()
+    print("Database initialized successfully")
+except Exception as e:
+    print("Database initialization error:", e)
+
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
