@@ -1,14 +1,17 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Smart Breeze Dashboard</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
     <style>
+
         body {
             margin: 0;
             font-family: Arial, sans-serif;
@@ -83,59 +86,116 @@
         }
 
         @media (max-width: 900px) {
+
             .cards {
                 grid-template-columns: repeat(2, 1fr);
             }
+
         }
 
         @media (max-width: 600px) {
+
             .cards {
                 grid-template-columns: 1fr;
             }
+
         }
+
     </style>
+
 </head>
 
 <body>
 
 <header>
+
     <h1>⚡ SMART BREEZE</h1>
-    <p>Smart Energy Monitoring System</p>
+
+    <p>
+        Smart Energy Monitoring System
+    </p>
+
 </header>
+
 
 <div class="container">
 
+
+    <!-- ENERGY CARDS -->
+
     <div class="cards">
 
+
         <div class="card">
+
             <h3>Voltage</h3>
-            <div class="value" id="voltage">--</div>
-            <div class="unit">Volts</div>
+
+            <div class="value" id="voltage">
+                --
+            </div>
+
+            <div class="unit">
+                Volts
+            </div>
+
         </div>
 
+
         <div class="card">
+
             <h3>Current</h3>
-            <div class="value" id="current">--</div>
-            <div class="unit">Amps</div>
+
+            <div class="value" id="current">
+                --
+            </div>
+
+            <div class="unit">
+                Amps
+            </div>
+
         </div>
 
+
         <div class="card">
+
             <h3>Power</h3>
-            <div class="value" id="power">--</div>
-            <div class="unit">Watts</div>
+
+            <div class="value" id="power">
+                --
+            </div>
+
+            <div class="unit">
+                Watts
+            </div>
+
         </div>
 
+
         <div class="card">
+
             <h3>Energy</h3>
-            <div class="value" id="energy">--</div>
-            <div class="unit">kWh</div>
+
+            <div class="value" id="energy">
+                --
+            </div>
+
+            <div class="unit">
+                kWh
+            </div>
+
         </div>
+
 
     </div>
 
+
+    <!-- POWER CHART -->
+
     <div class="chart-container">
 
-        <h2>Power Consumption</h2>
+        <h2>
+            Power Consumption
+        </h2>
 
         <canvas id="powerChart"></canvas>
 
@@ -145,11 +205,19 @@
 
     </div>
 
+
 </div>
+
 
 <script>
 
+
 let powerChart;
+
+
+// ==========================================
+// CREATE CHART
+// ==========================================
 
 function createChart() {
 
@@ -157,90 +225,117 @@ function createChart() {
         .getElementById("powerChart")
         .getContext("2d");
 
+
     powerChart = new Chart(ctx, {
 
         type: "line",
 
         data: {
+
             labels: [],
+
             datasets: [{
+
                 label: "Power (W)",
+
                 data: [],
+
                 borderWidth: 2,
+
                 tension: 0.3
+
             }]
+
         },
 
+
         options: {
+
             responsive: true,
 
+            animation: false,
+
             scales: {
+
                 y: {
+
                     beginAtZero: true
+
                 }
+
             }
+
         }
+
     });
+
 }
 
 
-async function loadData() {
+// ==========================================
+// LOAD LATEST READING
+// ==========================================
+
+async function loadLatest() {
 
     try {
 
-        const response = await fetch("/energy");
+        const response = await fetch(
+            "/latest",
+            {
+                cache: "no-store"
+            }
+        );
+
 
         const result = await response.json();
 
+
         if (result.status !== "success") {
-            throw new Error("Server returned an error");
+
+            throw new Error(
+                "Server returned an error"
+            );
+
         }
 
-        const data = result.data;
 
-        if (data.length === 0) {
+        const latest = result.data;
+
+
+        if (!latest) {
 
             document.getElementById("status").innerText =
                 "Waiting for ESP32 data...";
 
             return;
+
         }
 
-        // Latest reading
-        const latest = data[0];
+
+        // Update cards
 
         document.getElementById("voltage").innerText =
             latest.voltage ?? "--";
 
+
         document.getElementById("current").innerText =
             latest.current ?? "--";
+
 
         document.getElementById("power").innerText =
             latest.power ?? "--";
 
+
         document.getElementById("energy").innerText =
             latest.energy ?? "--";
 
-        // Chart
-        const chartData = [...data].reverse();
-
-        powerChart.data.labels =
-            chartData.map(item => {
-
-                const date = new Date(item.created_at);
-
-                return date.toLocaleTimeString();
-
-            });
-
-        powerChart.data.datasets[0].data =
-            chartData.map(item => item.power);
-
-        powerChart.update();
 
         document.getElementById("status").innerText =
             "● Connected — Last update: " +
-            new Date(latest.created_at).toLocaleString();
+            new Date(latest.created_at)
+                .toLocaleString();
+
 
     }
 
@@ -252,16 +347,118 @@ async function loadData() {
             "Connection error";
 
     }
+
 }
 
 
+// ==========================================
+// LOAD CHART DATA
+// ==========================================
+
+async function loadChart() {
+
+    try {
+
+        const response = await fetch(
+            "/energy",
+            {
+                cache: "no-store"
+            }
+        );
+
+
+        const result = await response.json();
+
+
+        if (result.status !== "success") {
+
+            throw new Error(
+                "Server returned an error"
+            );
+
+        }
+
+
+        const data = result.data;
+
+
+        if (!data || data.length === 0) {
+
+            return;
+
+        }
+
+
+        // Oldest → newest
+
+        const chartData = [...data].reverse();
+
+
+        powerChart.data.labels =
+            chartData.map(item => {
+
+                const date =
+                    new Date(item.created_at);
+
+                return date.toLocaleTimeString();
+
+            });
+
+
+        powerChart.data.datasets[0].data =
+            chartData.map(item => item.power);
+
+
+        powerChart.update();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Chart error:",
+            error
+        );
+
+    }
+
+}
+
+
+// ==========================================
+// START
+// ==========================================
+
 createChart();
 
-loadData();
 
-setInterval(loadData, 2000);
+// Load immediately
+
+loadLatest();
+
+loadChart();
+
+
+// Latest reading every 2 seconds
+
+setInterval(
+    loadLatest,
+    2000
+);
+
+
+// Chart every 10 seconds
+
+setInterval(
+    loadChart,
+    10000
+);
+
 
 </script>
 
+
 </body>
+
 </html>
+```
